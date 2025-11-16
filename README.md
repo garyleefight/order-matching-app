@@ -19,16 +19,22 @@ A full-stack web application that intelligently matches orders with transactions
   - Date discrepancies
 
 ### Workflow
-1. **Manage Transactions**: Add, view, and delete transactions in the database
-2. **Match Orders**: Upload orders as JSON array to match against existing transactions
-3. **Review Pending Orders**: Approve or reject matched orders with confidence scores
-4. **Persistent Storage**: Approved orders saved to SQLite database with full audit trail
+1. **Manage Orders**: Import orders via JSON file/paste or add manually one by one
+2. **Import & Match Transactions**: Upload transactions as JSON or add manually - automatically matches against orders
+3. **Review Pending Transactions**: View matched transactions with scores, auto-fix mismatches, approve or reject
+4. **Manage Transactions**: View all approved transactions with order details
+5. **Auto-Rejection**: Unmatched transactions are automatically rejected and saved for audit trail
 
 ### Technical Highlights
-- **Pending Orders System**: Matched orders saved to `pending_orders` table for review
+- **Pending Transactions System**: Matched transactions saved to `pending_transactions` table for review
+- **Auto-Fix Functionality**: One-click alignment of transaction fields with matched orders
 - **Status Tracking**: pending → approved/rejected with timestamps
-- **Modular Component Architecture**: Easy to extend and maintain
-- **Proper Error Handling**: 4xx for client errors, 5xx for server errors
+- **Approval Validation**: Prevents approval if customer, orderId, or item don't match the matched order
+- **Complete Audit Trail**: All transactions (matched and rejected) are persisted
+- **MVC Architecture**: Clean separation with controllers, models, and services
+- **Organized Components**: Components grouped by domain (order, transaction, pendingTransaction, modal)
+- **Sortable Tables**: Click headers to sort by any column
+- **Modal Views**: Clean UI for viewing/editing order and transaction details
 
 ## Tech Stack
 
@@ -38,12 +44,14 @@ A full-stack web application that intelligently matches orders with transactions
 - **Language**: TypeScript
 - **Database**: SQLite with better-sqlite3
 - **Fuzzy Matching**: fuzzball
+- **Architecture**: MVC pattern with controllers and models
 
 ### Frontend
 - **Framework**: React 19
 - **Language**: TypeScript
 - **Build Tool**: Vite
-- **Styling**: Custom CSS
+- **Styling**: Custom CSS with responsive design
+- **UI Components**: Reusable modal, sortable table, detail views
 
 ## Project Structure
 
@@ -51,31 +59,57 @@ A full-stack web application that intelligently matches orders with transactions
 order-matching-app/
 ├── backend/
 │   ├── src/
+│   │   ├── controllers/          # MVC Controllers
+│   │   │   ├── match.controller.ts
+│   │   │   ├── order.controller.ts
+│   │   │   ├── transaction.controller.ts
+│   │   │   └── pendingTransaction.controller.ts
+│   │   ├── models/               # Database models
+│   │   │   ├── Order.model.ts
+│   │   │   ├── Transaction.model.ts
+│   │   │   └── PendingTransaction.model.ts
 │   │   ├── db/
-│   │   │   └── database.ts          # Database initialization and schema
-│   │   ├── index.ts                 # Express server and API routes
-│   │   ├── matcher.ts               # Fuzzy matching algorithm
-│   │   └── types.ts                 # TypeScript interfaces
-│   ├── data/                        # SQLite database files (auto-created)
+│   │   │   └── database.ts       # Database initialization and schema
+│   │   ├── middleware/
+│   │   │   └── errorHandler.ts   # Error handling middleware
+│   │   ├── routes/
+│   │   │   └── api.routes.ts     # API route definitions
+│   │   ├── matcher.ts            # Fuzzy matching algorithm
+│   │   ├── types.ts              # TypeScript interfaces
+│   │   └── index.ts              # Express server entry point
+│   ├── data/                     # SQLite database files (auto-created)
 │   ├── package.json
 │   └── tsconfig.json
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   └── client.ts            # API client functions
+│   │   │   └── client.ts         # API client functions
 │   │   ├── components/
-│   │   │   ├── TransactionManager.tsx
-│   │   │   ├── TransactionForm.tsx
-│   │   │   ├── TransactionList.tsx
-│   │   │   ├── OrderMatcher.tsx
-│   │   │   ├── PendingOrdersManager.tsx
-│   │   │   └── PendingOrderCard.tsx
-│   │   ├── App.tsx                  # Main application component
-│   │   ├── App.css                  # Styling
-│   │   └── types.ts                 # TypeScript interfaces
+│   │   │   ├── modal/            # Reusable modal components
+│   │   │   │   ├── Modal.tsx
+│   │   │   │   └── SortableTable.tsx
+│   │   │   ├── order/            # Order management components
+│   │   │   │   ├── OrderManager.tsx
+│   │   │   │   ├── OrderDetailView.tsx
+│   │   │   │   ├── OrderMatcher.tsx
+│   │   │   │   └── PendingOrderCard.tsx
+│   │   │   ├── transaction/      # Transaction components
+│   │   │   │   ├── TransactionManager.tsx
+│   │   │   │   ├── TransactionViewer.tsx
+│   │   │   │   ├── TransactionDetailView.tsx
+│   │   │   │   ├── TransactionForm.tsx
+│   │   │   │   └── TransactionList.tsx
+│   │   │   └── pendingTransaction/  # Pending review components
+│   │   │       ├── PendingTransactionsManager.tsx
+│   │   │       └── PendingTransactionEditModal.tsx
+│   │   ├── App.tsx               # Main application component
+│   │   ├── App.css               # Styling
+│   │   └── types.ts              # TypeScript interfaces
 │   ├── package.json
 │   └── tsconfig.json
-└── README.md
+├── .gitignore                    # Git ignore rules
+├── README.md
+└── QUICKSTART.md                 # Quick start guide
 ```
 
 ## Setup and Installation
@@ -83,6 +117,10 @@ order-matching-app/
 ### Prerequisites
 - Node.js (v20.19+ or v22.12+)
 - npm (v10+)
+
+### Quick Start
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
 
 ### Backend Setup
 
@@ -129,81 +167,82 @@ The frontend will run on `http://localhost:5173` (or another port if 5173 is bus
 
 ## Usage
 
-### 1. Manage Transactions
+### 1. Manage Orders
+
+- Navigate to the "Manage Orders" tab
+- **Import from File**: Click "Import from File" and select a JSON file
+- **Paste JSON**: Click "Paste JSON" and paste a JSON array of orders
+- **Add Manually**: Click "Add Manually" to create orders one by one
+  - Fill in customer name, order ID, date, item, and price
+  - Click "Add to List" to queue the order
+  - Click "Submit All" when ready
+- View all orders in the sortable table
+- Click "View" to see order details in a modal
+- Delete orders using the × button
+
+### 2. Import & Match Transactions
+
+- Navigate to the "Import & Match Transactions" tab
+- **Import from File**, **Paste JSON**, or **Add Manually** (same as orders)
+- Transactions require additional fields:
+  - Transaction type (e.g., "payment", "refund")
+  - Transaction amount
+- On import, transactions are automatically matched against orders
+- Matched transactions → sent to pending review (status: pending)
+- Unmatched transactions → auto-rejected and saved for audit (status: rejected)
+- You'll see a success message showing the count
+
+### 3. Review Pending Transactions
+
+- Navigate to the "Review Pending" tab
+- Filter by status: **Pending**, **Approved**, **Rejected**, or **All**
+- View matched transactions with:
+  - Match score (0-100)
+  - Matched order details (clickable)
+  - Transaction details
+  - Status badge (color-coded)
+- **For pending transactions**:
+  - **Edit (✏️)**: Modify transaction details
+    - Auto-fix button appears if fields don't match the matched order
+    - Click "🔧 Auto-fix to match order" to align customer, orderId, and item
+    - Review and click "Save Changes"
+  - **Approve (✓)**: Saves to transactions table (only if fields match)
+  - **Reject (✗)**: Marks as rejected
+  - **Delete (🗑)**: Permanently removes
+- Click Order IDs or Matched Order IDs to view order details in a modal
+- Sort by any column by clicking the header
+
+### 4. Manage Transactions
 
 - Navigate to the "Manage Transactions" tab
-- Fill in the transaction form:
-  - Customer name
-  - Order ID
-  - Date
-  - Item name
-  - Price
-  - Transaction type (e.g., "payment", "refund", "payment-1")
-  - Transaction amount
-- Click "Add Transaction" to save
-- View all transactions in the list below
-- Delete transactions using the × button
-
-### 2. Match Orders
-
-- Navigate to the "Match Orders" tab
-- Paste a JSON array of orders in the textarea:
-
-```json
-[
-  {
-    "customer": "Alex Abel",
-    "orderId": "18G",
-    "date": "2023-07-11",
-    "item": "Tool A",
-    "price": 1.23
-  },
-  {
-    "customer": "Brian Bell",
-    "orderId": "20S",
-    "date": "2023-08-08",
-    "item": "Toy B",
-    "price": 3.21
-  }
-]
-```
-
-- Click "Match Orders with Transactions"
-- Matched orders are automatically saved to the pending_orders table
-- You'll be redirected to the "Review Pending Orders" tab
-
-### 3. Review Pending Orders
-
-- View all pending orders with their match scores
-- See matched transactions for each order
-- Filter by status: Pending, Approved, Rejected, or All
-- For each pending order:
-  - **Approve**: Saves to the orders table and marks as approved
-  - **Reject**: Marks as rejected (stays in pending_orders)
-  - **Delete**: Permanently removes from pending_orders
-- Timestamps show when orders were created and last updated
+- View all approved transactions
+- Click Order IDs to see the linked order details
+- Click "View" for detailed transaction information
+- Sort and manage your transaction records
 
 ## API Endpoints
 
 ### Transactions
-- `GET /api/transactions` - Get all transactions
-- `POST /api/transactions` - Create transactions (array)
+- `GET /api/transactions` - Get all approved transactions
+- `POST /api/transactions` - Create transactions (array) - auto-matched against orders
 - `DELETE /api/transactions/:id` - Delete a specific transaction
-- `DELETE /api/transactions` - Delete all transactions
 
 ### Orders
-- `GET /api/orders` - Get all approved orders
+- `GET /api/orders` - Get all orders
+- `POST /api/orders` - Create orders (array)
 - `DELETE /api/orders/:id` - Delete a specific order
-- `DELETE /api/orders` - Delete all orders
 
 ### Matching
-- `POST /api/match` - Match orders with transactions and save to pending
+- `POST /api/match` - Match orders with transactions
+  - Saves matched transactions as 'pending' status
+  - Saves unmatched transactions as 'rejected' status
 
-### Pending Orders
-- `GET /api/pending-orders?status=pending|approved|rejected` - Get pending orders
-- `PUT /api/pending-orders/:id/approve` - Approve a pending order
-- `PUT /api/pending-orders/:id/reject` - Reject a pending order
-- `DELETE /api/pending-orders/:id` - Delete a pending order
+### Pending Transactions
+- `GET /api/pending-transactions?status=pending|approved|rejected` - Get pending transactions (with matched order info)
+- `PUT /api/pending-transactions/:id` - Update pending transaction details
+- `PUT /api/pending-transactions/:id/approve` - Approve a pending transaction (validates match first)
+- `PUT /api/pending-transactions/:id/reject` - Reject a pending transaction
+- `DELETE /api/pending-transactions/:id` - Delete a pending transaction
 
 ## Database Schema
 
@@ -227,15 +266,17 @@ The frontend will run on `http://localhost:5173` (or another port if 5173 is bus
 - `txnAmount` - Transaction amount
 - `created_at` - Timestamp
 
-### pending_orders
+### pending_transactions
 - `id` - Auto-increment primary key
 - `customer` - Customer name
 - `orderId` - Order identifier
-- `date` - Order date
+- `date` - Transaction date
 - `item` - Item name
-- `price` - Order price
+- `price` - Item price
+- `txnType` - Transaction type
+- `txnAmount` - Transaction amount
+- `matched_order_id` - Foreign key to orders table (nullable)
 - `matchScore` - Match confidence score (0-100)
-- `matchedTransactions` - JSON array of matched transactions
 - `status` - pending | approved | rejected
 - `created_at` - Creation timestamp
 - `updated_at` - Last update timestamp
@@ -251,6 +292,15 @@ The fuzzy matching algorithm uses multiple signals to find the best match:
 5. **Date** (5%): Transaction must be on or after order date, within 90 days
 
 **Threshold**: Matches with scores ≥ 60% are considered valid.
+
+### Approval Validation
+
+Before a transaction can be approved, the system validates that:
+- `customer` matches the matched order's customer
+- `orderId` matches the matched order's orderId
+- `item` matches the matched order's item
+
+If any field doesn't match, use the Auto-Fix feature or edit manually before approving.
 
 ## Sample Data
 
@@ -299,6 +349,21 @@ cd frontend
 npm run build
 ```
 
+## Key Features & Improvements
+
+- ✅ **MVC Architecture**: Clean separation of concerns with controllers and models
+- ✅ **Pending Transactions**: Complete review workflow for matched transactions
+- ✅ **Auto-Fix**: One-click field alignment with matched orders
+- ✅ **Approval Validation**: Ensures data integrity before approval
+- ✅ **Auto-Rejection**: Unmatched transactions saved with 'rejected' status
+- ✅ **Complete Audit Trail**: All transactions persisted in database
+- ✅ **Sortable Tables**: Click-to-sort on all columns
+- ✅ **Modal Views**: Clean detail and edit modals
+- ✅ **Organized Components**: Domain-based component structure
+- ✅ **Manual Entry**: Add orders/transactions without JSON
+- ✅ **Clickable References**: Order IDs link to detail views
+- ✅ **Status Badges**: Visual indication of transaction status
+
 ## Future Enhancements
 
 - Bulk import/export (CSV support)
@@ -308,6 +373,8 @@ npm run build
 - Multi-user support with authentication
 - Customizable matching weights
 - Machine learning to improve matching over time
+- Batch approve/reject operations
+- Export audit reports
 
 ## License
 
