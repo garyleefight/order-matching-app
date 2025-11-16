@@ -1,0 +1,15 @@
+{
+  "name": "order-matching-app",
+  "version": "1.0.0",
+  "description": "Order-Transaction Matching Application with Fuzzy Matching",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": ["fuzzy-matching", "order-matching", "full-stack"],
+  "author": "",
+  "license": "ISC"
+}
