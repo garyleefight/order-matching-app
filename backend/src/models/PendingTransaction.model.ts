@@ -38,6 +38,7 @@ export class PendingTransactionModel {
       matched_order_id: pt.matched_order_id,
       matchScore: pt.matchScore,
       status: pt.status,
+      submitted_at: pt.submitted_at,
       created_at: pt.created_at,
       updated_at: pt.updated_at,
       matchedOrder: pt.matched_order_id ? {
@@ -46,7 +47,7 @@ export class PendingTransactionModel {
         date: pt.order_date,
         item: pt.order_item,
         price: pt.order_price
-      } : null
+      } : undefined
     }));
   }
 
@@ -54,10 +55,10 @@ export class PendingTransactionModel {
     return db.prepare('SELECT * FROM pending_transactions WHERE id = ?').get(id) as PendingTransaction | undefined;
   }
 
-  static create(txn: PendingTransaction, orderId: number | null, matchScore: number, status: 'pending' | 'approved' | 'rejected' = 'pending'): number {
+  static create(txn: PendingTransaction, orderId: number | null, matchScore: number, status: 'pending' | 'approved' | 'rejected' = 'pending', submittedAt?: string): number {
     const result = db.prepare(`
-      INSERT INTO pending_transactions (customer, orderId, date, item, price, txnType, txnAmount, matched_order_id, matchScore, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO pending_transactions (customer, orderId, date, item, price, txnType, txnAmount, matched_order_id, matchScore, status, submitted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
     `).run(
       txn.customer,
       txn.orderId,
@@ -68,7 +69,8 @@ export class PendingTransactionModel {
       txn.txnAmount,
       orderId,
       matchScore,
-      status
+      status,
+      submittedAt
     );
 
     return result.lastInsertRowid as number;

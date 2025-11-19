@@ -23,6 +23,9 @@ export class MatchController {
         let pendingCount = 0;
         let rejectedCount = 0;
 
+        // Get server-side timestamp for submission
+        const submittedAt = new Date().toISOString();
+
         // Save individual matched and unmatched transactions to pending_transactions table
         const saveTransactions = db.transaction((matched: any[], unmatched: any[]) => {
           // Save matched transactions - auto-approve if score is high enough
@@ -51,11 +54,11 @@ export class MatchController {
 
                 // Save to transactions table AND pending_transactions with 'approved' status
                 TransactionModel.create(fixedTxn, orderId);
-                PendingTransactionModel.create(fixedTxn, orderId, txnMatchScore, 'approved');
+                PendingTransactionModel.create(fixedTxn, orderId, txnMatchScore, 'approved', submittedAt);
                 autoApprovedCount++;
               } else {
                 // Save to pending_transactions with 'pending' status for manual review
-                PendingTransactionModel.create(txn, orderId || null, txnMatchScore, 'pending');
+                PendingTransactionModel.create(txn, orderId || null, txnMatchScore, 'pending', submittedAt);
                 pendingCount++;
               }
             }
@@ -63,7 +66,7 @@ export class MatchController {
 
           // Save unmatched transactions with 'rejected' status
           for (const txn of unmatched) {
-            PendingTransactionModel.create(txn, null, 0, 'rejected');
+            PendingTransactionModel.create(txn, null, 0, 'rejected', submittedAt);
             rejectedCount++;
           }
         });

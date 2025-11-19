@@ -43,6 +43,7 @@ export interface PendingTransaction {
   matched_order_id?: number;
   matchScore?: number;
   status: 'pending' | 'approved' | 'rejected';
+  submitted_at?: string;
   created_at?: string;
   updated_at?: string;
   // Populated from join

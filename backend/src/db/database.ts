@@ -60,6 +60,7 @@ export function initializeDatabase() {
       matched_order_id INTEGER,
       matchScore INTEGER,
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (matched_order_id) REFERENCES orders(id) ON DELETE SET NULL
