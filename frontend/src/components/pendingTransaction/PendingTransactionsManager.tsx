@@ -181,6 +181,18 @@ export default function PendingTransactionsManager() {
         </span>
       ),
       sortFn: (a, b) => a.status.localeCompare(b.status)
+    },
+    {
+      key: 'submitted_at',
+      header: 'Submitted',
+      render: (txn) => txn.submitted_at
+        ? new Date(txn.submitted_at).toLocaleString()
+        : 'N/A',
+      sortFn: (a, b) => {
+        const dateA = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+        const dateB = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+        return dateB - dateA; // Most recent first
+      }
     }
   ];
 
