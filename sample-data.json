@@ -51,6 +51,15 @@
       "price": 3.21,
       "txnType": "payment-2",
       "txnAmount": 2.00
-    }
+    },
+    {
+      "customer": "ZZZ",
+      "orderId": "703",
+      "date": "2023-08-13",
+      "item": "Toy A",
+      "price": 3.21,
+      "txnType": "payment-2",
+      "txnAmount": 2.00
+    } 
   ]
 }

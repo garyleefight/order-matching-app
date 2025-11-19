@@ -60,11 +60,11 @@ export default function TransactionManager() {
       // Auto-match on import
       const result = await api.matchOrders(orders, data);
 
-      // Show results - count total transactions, not matched orders
-      const matchedCount = result.matched.reduce((sum: number, match: any) => sum + match.txns.length, 0);
-      const rejectedCount = result.unmatchedTransactions.length;
+      // Use backend's message which includes auto-approved count
+      const message = result.message ||
+        `${result.autoApprovedCount || 0} auto-approved, ${result.pendingCount || 0} sent to pending review, ${result.rejectedCount || 0} auto-rejected`;
 
-      setSuccess(`Import complete! ${matchedCount} transaction(s) sent to pending review, ${rejectedCount} auto-rejected (no match found). Go to "Review Pending" tab.`);
+      setSuccess(`Import complete! ${message}. Go to "Review Pending" tab to see pending transactions.`);
       setError(null);
 
       // Reload orders

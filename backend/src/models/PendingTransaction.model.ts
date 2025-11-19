@@ -54,7 +54,7 @@ export class PendingTransactionModel {
     return db.prepare('SELECT * FROM pending_transactions WHERE id = ?').get(id) as PendingTransaction | undefined;
   }
 
-  static create(txn: PendingTransaction, orderId: number | null, matchScore: number, status: 'pending' | 'rejected' = 'pending'): number {
+  static create(txn: PendingTransaction, orderId: number | null, matchScore: number, status: 'pending' | 'approved' | 'rejected' = 'pending'): number {
     const result = db.prepare(`
       INSERT INTO pending_transactions (customer, orderId, date, item, price, txnType, txnAmount, matched_order_id, matchScore, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

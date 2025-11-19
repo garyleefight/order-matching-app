@@ -16,6 +16,7 @@ export interface Transaction {
   price: number;
   txnType: string;
   txnAmount: number;
+  matchScore?: number; // Individual match score when matched
 }
 
 export interface MatchedOrder {

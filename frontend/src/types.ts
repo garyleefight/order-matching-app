@@ -16,6 +16,7 @@ export type Transaction = {
   price: number;
   txnType: string;
   txnAmount: number;
+  matchScore?: number; // Individual match score when matched
 }
 
 export type MatchedOrder = {
@@ -28,6 +29,10 @@ export type MatchResult = {
   matched: MatchedOrder[];
   unmatchedOrders: Order[];
   unmatchedTransactions: Transaction[];
+  message?: string;
+  autoApprovedCount?: number;
+  pendingCount?: number;
+  rejectedCount?: number;
 }
 
 export type PendingTransaction = {

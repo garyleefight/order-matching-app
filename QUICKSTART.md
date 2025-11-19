@@ -5,12 +5,12 @@ Get the Order-Transaction Matching Application up and running in 5 minutes!
 ## Prerequisites
 
 Make sure you have installed:
-- **Node.js** v20.19+ or v22.12+ ([Download here](https://nodejs.org/))
+- **Node.js** v22.12+ ([Download here](https://nodejs.org/))
 - **npm** v10+ (comes with Node.js)
 
 Verify your installation:
 ```bash
-node --version  # Should show v20.19+ or v22.12+
+node --version  # Should show v22.12+
 npm --version   # Should show v10+
 ```
 
@@ -229,7 +229,7 @@ If you run into issues:
 1. Check the browser console for frontend errors (F12)
 2. Check the terminal for backend errors
 3. Verify both servers are running
-4. Make sure you're using Node.js v20.19+ or v22.12+
+4. Make sure you're using Node.js v22.12+
 5. Try deleting `node_modules` and running `npm install` again
 
 ## Architecture Overview

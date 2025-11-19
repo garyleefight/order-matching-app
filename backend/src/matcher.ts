@@ -22,9 +22,11 @@ import { Order, Transaction, MatchedOrder, MatchResult } from './types';
 interface MatchScore {
   transactionIndex: number;
   score: number;
+  coreScore: number; // Score from customer + orderId + item only
 }
 
 const MATCH_THRESHOLD = 60; // 60% similarity threshold
+const AUTO_APPROVE_THRESHOLD = 0.9; // 90% of core fields (customer + orderId + item)
 
 /**
  * Check if transaction date is valid relative to order date
@@ -60,9 +62,9 @@ function isDateValid(orderDate: string, txnDate: string): number {
 
 /**
  * Calculate match score between an order and a transaction
- * Returns score from 0-100
+ * Returns object with total score and core score (customer + orderId + item)
  */
-function calculateMatchScore(order: Order, transaction: Transaction): number {
+function calculateMatchScore(order: Order, transaction: Transaction): { totalScore: number; coreScore: number } {
   // Customer name similarity (30%) - token_sort_ratio handles "Brian Bell" vs "Bell Brian"
   const customerScore = fuzzball.token_sort_ratio(order.customer || '', transaction.customer || '') * 0.3;
 
@@ -71,6 +73,9 @@ function calculateMatchScore(order: Order, transaction: Transaction): number {
 
   // Item similarity (20%)
   const itemScore = fuzzball.token_sort_ratio(order.item || '', transaction.item || '') * 0.2;
+
+  // Core score is the sum of customer, orderId, and item (max 85 points)
+  const coreScore = customerScore + orderIdScore + itemScore;
 
   // Price similarity (10%)
   const orderPrice = order.price || 0;
@@ -82,7 +87,9 @@ function calculateMatchScore(order: Order, transaction: Transaction): number {
   // Date validity (5%)
   const dateScore = isDateValid(order.date, transaction.date);
 
-  return customerScore + orderIdScore + itemScore + priceScore + dateScore;
+  const totalScore = coreScore + priceScore + dateScore;
+
+  return { totalScore, coreScore };
 }
 
 /**
@@ -135,20 +142,25 @@ export function matchOrders(orders: Order[], transactions: Transaction[]): Match
     transactions.forEach((txn, index) => {
       if (usedTransactionIndices.has(index)) return;
 
-      const score = calculateMatchScore(order, txn);
+      const { totalScore, coreScore } = calculateMatchScore(order, txn);
 
-      if (score >= MATCH_THRESHOLD) {
-        matches.push({ transactionIndex: index, score });
+      if (totalScore >= MATCH_THRESHOLD) {
+        matches.push({ transactionIndex: index, score: totalScore, coreScore });
       }
     });
 
     // Sort by score descending
     matches.sort((a, b) => b.score - a.score);
 
-    // Get all transactions that match this order
+    // Get all transactions that match this order with their individual scores
     const matchedTxns: Transaction[] = [];
     for (const match of matches) {
-      matchedTxns.push(transactions[match.transactionIndex]);
+      const txn = transactions[match.transactionIndex];
+      // Attach the individual match score to each transaction
+      matchedTxns.push({
+        ...txn,
+        matchScore: Math.round(match.score)
+      } as Transaction);
       usedTransactionIndices.add(match.transactionIndex);
     }
 
@@ -173,4 +185,15 @@ export function matchOrders(orders: Order[], transactions: Transaction[]): Match
     unmatchedOrders,
     unmatchedTransactions
   };
+}
+
+/**
+ * Determine if a transaction should be auto-approved based on total score vs core threshold
+ * Auto-approve if total score (including price + date bonuses) >= 90% of max core (76.5 points)
+ */
+export function shouldAutoApprove(order: Order, transaction: Transaction): boolean {
+  const { totalScore } = calculateMatchScore(order, transaction);
+  const maxCoreScore = 85; // 30% + 35% + 20% = 85%
+  const threshold = maxCoreScore * AUTO_APPROVE_THRESHOLD; // 76.5 points
+  return totalScore >= threshold;
 }
